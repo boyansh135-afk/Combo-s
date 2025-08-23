@@ -1,4 +1,10 @@
+python-telegram-bot==20.3
+apscheduler==3.10.4
+requests
 pandas
-matplotlib
+numpy
+beautifulsoup4
+lxml
 yfinance
-python-telegram-bot==20.6
+flask
+gunicorn

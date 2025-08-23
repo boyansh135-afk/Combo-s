@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ------------------- WEBHOOK CLEAR -------------------
+# ------------------- CLEAR WEBHOOK -------------------
 async def clear_webhook():
     bot = Bot(token=BOT_TOKEN)
     await bot.delete_webhook()
@@ -81,14 +81,10 @@ async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ------------------- SCHEDULED ALERTS -------------------
 def schedule_alerts(application):
     scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
-    scheduler.add_job(lambda: asyncio.create_task(send_swing_alert(application)),
-                      trigger='cron', hour=9, minute=20)
-    scheduler.add_job(lambda: asyncio.create_task(send_delivery_alert(application)),
-                      trigger='cron', hour=11, minute=0)
-    scheduler.add_job(lambda: asyncio.create_task(send_insider_alert(application)),
-                      trigger='cron', hour=12, minute=30)
-    scheduler.add_job(lambda: asyncio.create_task(send_weekly_summary(application)),
-                      trigger='cron', day_of_week='fri', hour=15, minute=30)
+    scheduler.add_job(lambda: asyncio.create_task(send_swing_alert(application)), trigger='cron', hour=9, minute=20)
+    scheduler.add_job(lambda: asyncio.create_task(send_delivery_alert(application)), trigger='cron', hour=11, minute=0)
+    scheduler.add_job(lambda: asyncio.create_task(send_insider_alert(application)), trigger='cron', hour=12, minute=30)
+    scheduler.add_job(lambda: asyncio.create_task(send_weekly_summary(application)), trigger='cron', day_of_week='fri', hour=15, minute=30)
     scheduler.start()
     logger.info("Scheduled alerts set for swing, delivery, insider, and weekly.")
 
@@ -97,14 +93,10 @@ def main():
     # 1️⃣ Clear webhook
     asyncio.run(clear_webhook())
 
-    # 2️⃣ Build Application safely
-    application = Application.builder().token(BOT_TOKEN).build()
+    # 2️⃣ Build Application WITHOUT job_queue to avoid weakref issues
+    application = Application.builder().token(BOT_TOKEN).job_queue(None).build()
 
-    # 3️⃣ Patch weakref issue (Python 3.13 safe)
-    if application.job_queue:
-        application.job_queue._application = application
-
-    # 4️⃣ Add command handlers
+    # 3️⃣ Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("swing", swing))
@@ -112,10 +104,10 @@ def main():
     application.add_handler(CommandHandler("insider", insider))
     application.add_handler(CommandHandler("weekly", weekly))
 
-    # 5️⃣ Schedule alerts
+    # 4️⃣ Schedule alerts externally
     schedule_alerts(application)
 
-    # 6️⃣ Run bot
+    # 5️⃣ Run bot
     application.run_polling()
 
 if __name__ == "__main__":

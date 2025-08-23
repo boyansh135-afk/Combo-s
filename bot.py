@@ -1,13 +1,8 @@
 import asyncio
 import logging
-from telegram import Update
+from telegram import Update, Bot
 from telegram.constants import ParseMode
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-)
-from telegram import Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ------------------- CONFIG -------------------
@@ -22,10 +17,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ------------------- WEBHOOK / CONFLICT FIX -------------------
-def clear_webhook():
+# ------------------- WEBHOOK CLEAR -------------------
+async def clear_webhook():
     bot = Bot(token=BOT_TOKEN)
-    bot.delete_webhook()
+    await bot.delete_webhook()
     logger.info("Webhook cleared, safe to start polling.")
 
 # ------------------- TRADING ALERT PLACEHOLDERS -------------------
@@ -87,19 +82,12 @@ async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def schedule_alerts(application):
     scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
-    # Swing Picks - Daily at 9:20 AM
     scheduler.add_job(lambda: asyncio.create_task(send_swing_alert(application)),
                       trigger='cron', hour=9, minute=20, second=0)
-
-    # Delivery % Spike - Daily at 11:00 AM
     scheduler.add_job(lambda: asyncio.create_task(send_delivery_alert(application)),
                       trigger='cron', hour=11, minute=0, second=0)
-
-    # Insider / Bulk Deal - Daily at 12:30 PM
     scheduler.add_job(lambda: asyncio.create_task(send_insider_alert(application)),
                       trigger='cron', hour=12, minute=30, second=0)
-
-    # Weekly Top Gainers - Friday at 3:30 PM
     scheduler.add_job(lambda: asyncio.create_task(send_weekly_summary(application)),
                       trigger='cron', day_of_week='fri', hour=15, minute=30, second=0)
 
@@ -108,8 +96,8 @@ def schedule_alerts(application):
 
 # ------------------- MAIN FUNCTION -------------------
 def main():
-    # Clear webhook to avoid Conflict error
-    clear_webhook()
+    # Clear webhook before starting polling to avoid Conflict
+    asyncio.run(clear_webhook())
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 

@@ -85,7 +85,7 @@ async def schedule_alerts(application):
     logger.info("Scheduled alerts set.")
 
 # ---------------- MAIN ----------------
-async def main():
+def main():
     import asyncio
 
     # Clear webhook before starting polling
@@ -100,14 +100,13 @@ async def main():
     application.add_handler(CommandHandler("insider", insider))
     application.add_handler(CommandHandler("weekly", weekly))
 
-    # Since schedule_alerts is async, we run it here with the running loop
+    # Run the async schedule_alerts in the event loop before polling
     loop = asyncio.get_event_loop()
     loop.run_until_complete(schedule_alerts(application))
 
-    # Run polling (blocking call) - do not use asyncio.run here
+    # Run polling (manages its own event loop, do NOT use asyncio.run here)
     application.run_polling()
 
 
 if __name__ == "__main__":
     main()
-

@@ -19,12 +19,11 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-logging.getLogger("httpx").setLevel(logging.WARNING)  # suppress noisy logs
+logging.getLogger("httpx").setLevel(logging.WARNING)  # reduce spammy logs
 
 
 # ---------------- ERROR HANDLER ----------------
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log the error and send a telegram message to notify the developer."""
     logger.error("Exception while handling an update:", exc_info=context.error)
 
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
@@ -148,24 +147,17 @@ async def main():
     # Add global error handler
     application.add_error_handler(error_handler)
 
+    # Setup alerts schedule
     await schedule_alerts(application)
 
-    await application.run_polling()
+    # Use async context manager to manage lifecycle cleanly
+    async with application:
+        await application.start()
+        await application.updater.start_polling()
+        await application.updater.wait_until_closed()
+        await application.stop()
 
 
 if __name__ == "__main__":
     import asyncio
-
-    try:
-        asyncio.run(main())
-    except RuntimeError as e:
-        if "event loop is running" in str(e):
-            import nest_asyncio
-
-            nest_asyncio.apply()
-
-            loop = asyncio.get_event_loop()
-            loop.create_task(main())
-            loop.run_forever()
-        else:
-            raise
+    asyncio.run(main())

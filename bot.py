@@ -101,8 +101,15 @@ def main():
     application.add_handler(CommandHandler("weekly", weekly))
 
     # Run the async schedule_alerts in the event loop before polling
+    import sys
+if sys.version_info >= (3, 10):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+else:
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(schedule_alerts(application))
+
+loop.run_until_complete(schedule_alerts(application))
+
 
     # Run polling (manages its own event loop, do NOT use asyncio.run here)
     application.run_polling()

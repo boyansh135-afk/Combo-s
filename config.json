@@ -1,0 +1,7 @@
+cat > config.json << 'EOF'
+{
+  "TOKEN": "8048782271:AAGZx7hIdRD3K6fUfqQ-WQab6DLunKcN4BY",
+  "USER_ID": 5300776959,
+  "GROUP_ID": -100273937481
+}
+EOF

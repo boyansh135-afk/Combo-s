@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -5,8 +7,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
 )
-import logging
-import asyncio
+from telegram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ------------------- CONFIG -------------------
@@ -20,6 +21,12 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# ------------------- WEBHOOK / CONFLICT FIX -------------------
+def clear_webhook():
+    bot = Bot(token=BOT_TOKEN)
+    bot.delete_webhook()
+    logger.info("Webhook cleared, safe to start polling.")
 
 # ------------------- TRADING ALERT PLACEHOLDERS -------------------
 async def send_swing_alert(application):
@@ -78,8 +85,7 @@ async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ------------------- SCHEDULED ALERTS -------------------
 def schedule_alerts(application):
-    """Schedules automatic alerts at exact times using AsyncIOScheduler."""
-    scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")  # IST timezone
+    scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
     # Swing Picks - Daily at 9:20 AM
     scheduler.add_job(lambda: asyncio.create_task(send_swing_alert(application)),
@@ -102,6 +108,9 @@ def schedule_alerts(application):
 
 # ------------------- MAIN FUNCTION -------------------
 def main():
+    # Clear webhook to avoid Conflict error
+    clear_webhook()
+
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # ⚡ Patch JobQueue weakref issue for Python 3.13
@@ -116,7 +125,7 @@ def main():
     application.add_handler(CommandHandler("insider", insider))
     application.add_handler(CommandHandler("weekly", weekly))
 
-    # Start scheduled alerts at exact times
+    # Start scheduled alerts
     schedule_alerts(application)
 
     # Run bot

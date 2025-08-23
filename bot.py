@@ -2,7 +2,7 @@ import asyncio
 import logging
 from telegram import Update, Bot
 from telegram.constants import ParseMode
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # ------------------- CONFIG -------------------
@@ -81,31 +81,30 @@ async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ------------------- SCHEDULED ALERTS -------------------
 def schedule_alerts(application):
     scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
-
     scheduler.add_job(lambda: asyncio.create_task(send_swing_alert(application)),
-                      trigger='cron', hour=9, minute=20, second=0)
+                      trigger='cron', hour=9, minute=20)
     scheduler.add_job(lambda: asyncio.create_task(send_delivery_alert(application)),
-                      trigger='cron', hour=11, minute=0, second=0)
+                      trigger='cron', hour=11, minute=0)
     scheduler.add_job(lambda: asyncio.create_task(send_insider_alert(application)),
-                      trigger='cron', hour=12, minute=30, second=0)
+                      trigger='cron', hour=12, minute=30)
     scheduler.add_job(lambda: asyncio.create_task(send_weekly_summary(application)),
-                      trigger='cron', day_of_week='fri', hour=15, minute=30, second=0)
-
+                      trigger='cron', day_of_week='fri', hour=15, minute=30)
     scheduler.start()
     logger.info("Scheduled alerts set for swing, delivery, insider, and weekly.")
 
 # ------------------- MAIN FUNCTION -------------------
 def main():
-    # Clear webhook before starting polling to avoid Conflict
+    # 1️⃣ Clear webhook
     asyncio.run(clear_webhook())
 
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    # 2️⃣ Build Application safely
+    application = Application.builder().token(BOT_TOKEN).build()
 
-    # ⚡ Patch JobQueue weakref issue for Python 3.13
+    # 3️⃣ Patch weakref issue (Python 3.13 safe)
     if application.job_queue:
         application.job_queue._application = application
 
-    # Add command handlers
+    # 4️⃣ Add command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("swing", swing))
@@ -113,10 +112,10 @@ def main():
     application.add_handler(CommandHandler("insider", insider))
     application.add_handler(CommandHandler("weekly", weekly))
 
-    # Start scheduled alerts
+    # 5️⃣ Schedule alerts
     schedule_alerts(application)
 
-    # Run bot
+    # 6️⃣ Run bot
     application.run_polling()
 
 if __name__ == "__main__":

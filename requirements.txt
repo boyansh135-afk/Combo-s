@@ -3,8 +3,5 @@ apscheduler==3.10.4
 requests
 pandas
 numpy
-beautifulsoup4
-lxml
 yfinance
-flask
-gunicorn
+python-dotenv

@@ -1,3 +1,0 @@
-cat > Procfile << 'EOF'
-worker: python bot.py
-EOF
